@@ -193,11 +193,11 @@
       },
       {
         "standard_title": "会计与出纳",
-        "matched_alias": "出纳"
+        "matched_alias": "财务"
       },
       {
         "standard_title": "会计与出纳",
-        "matched_alias": "财务"
+        "matched_alias": "出纳"
       },
       {
         "standard_title": "会计与出纳",
@@ -455,11 +455,11 @@
       },
       {
         "standard_title": "会计与出纳",
-        "matched_alias": "出纳"
+        "matched_alias": "财务"
       },
       {
         "standard_title": "会计与出纳",
-        "matched_alias": "财务"
+        "matched_alias": "出纳"
       },
       {
         "standard_title": "会计与出纳",
@@ -4647,11 +4647,11 @@
       },
       {
         "standard_title": "新闻记者",
-        "matched_alias": "采编"
+        "matched_alias": "记者"
       },
       {
         "standard_title": "新闻记者",
-        "matched_alias": "记者"
+        "matched_alias": "采编"
       },
       {
         "standard_title": "行政专员/助理",
@@ -8228,11 +8228,11 @@
       },
       {
         "standard_title": "软件工程师",
-        "matched_alias": "研发工程师"
+        "matched_alias": "开发工程师"
       },
       {
         "standard_title": "软件工程师",
-        "matched_alias": "开发工程师"
+        "matched_alias": "研发工程师"
       },
       {
         "standard_title": "销售",
@@ -13654,11 +13654,11 @@
       },
       {
         "standard_title": "医生",
-        "matched_alias": "医生"
+        "matched_alias": "医师"
       },
       {
         "standard_title": "医生",
-        "matched_alias": "医师"
+        "matched_alias": "医生"
       }
     ],
     "rule_source": "employment_direction"
@@ -13764,11 +13764,11 @@
       },
       {
         "standard_title": "医生",
-        "matched_alias": "医生"
+        "matched_alias": "医师"
       },
       {
         "standard_title": "医生",
-        "matched_alias": "医师"
+        "matched_alias": "医生"
       }
     ],
     "rule_source": "employment_direction"
@@ -15419,11 +15419,11 @@
       },
       {
         "standard_title": "会计与出纳",
-        "matched_alias": "出纳"
+        "matched_alias": "财务"
       },
       {
         "standard_title": "会计与出纳",
-        "matched_alias": "财务"
+        "matched_alias": "出纳"
       },
       {
         "standard_title": "会计与出纳",
@@ -15728,11 +15728,11 @@
       },
       {
         "standard_title": "新闻记者",
-        "matched_alias": "采编"
+        "matched_alias": "记者"
       },
       {
         "standard_title": "新闻记者",
-        "matched_alias": "记者"
+        "matched_alias": "采编"
       },
       {
         "standard_title": "行政专员/助理",
@@ -15819,11 +15819,11 @@
       },
       {
         "standard_title": "会计与出纳",
-        "matched_alias": "出纳"
+        "matched_alias": "财务"
       },
       {
         "standard_title": "会计与出纳",
-        "matched_alias": "财务"
+        "matched_alias": "出纳"
       },
       {
         "standard_title": "会计与出纳",
