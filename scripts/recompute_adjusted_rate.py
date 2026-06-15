@@ -16,6 +16,13 @@ CONFIDENCE_FACTOR = {
     "low": 0.75
 }
 
+EVIDENCE_FACTOR = {
+    "direct": 1.00,
+    "inferred": 0.82,
+    "fallback": 0.55,
+    "unknown": 0.45
+}
+
 
 def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -99,6 +106,14 @@ def get_job_count(row):
     return int(row.get("job_count") or 0)
 
 
+def get_evidence_level(row):
+    return str(row.get("evidence_level") or "unknown").lower()
+
+
+def is_explicit_keep_zero(row):
+    return row.get("zero_override_reason") == "keep_zero"
+
+
 def build_category_stats(rows):
     bucket = {}
 
@@ -132,26 +147,29 @@ def build_category_stats(rows):
     return category_stats
 
 
-def compute_adjusted_rate(raw_rate, job_count, confidence, category_rate, baseline_rate):
+def compute_adjusted_rate(raw_rate, job_count, confidence, category_rate, baseline_rate, evidence_level):
     raw_rate = float(raw_rate or 0)
     job_count = int(job_count or 0)
     confidence = (confidence or "low").lower()
     category_rate = float(category_rate or 0)
     baseline_rate = float(baseline_rate or 0)
+    evidence_factor = EVIDENCE_FACTOR.get(evidence_level, EVIDENCE_FACTOR["unknown"])
 
-    if confidence == "low":
-        if category_rate == 0:
-            if baseline_rate > 0:
-                adjusted = max(baseline_rate, raw_rate)
-                return round(clamp(adjusted), 4), 0.0, "low_confidence_use_baseline_or_raw"
-            else:
-                adjusted = max(0.30, raw_rate)
-                return round(clamp(adjusted), 4), 0.0, "low_confidence_use_fallback_or_raw"
-        else:
-            adjusted = max(category_rate, raw_rate)
-            return round(clamp(adjusted), 4), 0.0, "low_confidence_use_category_or_raw"
-    else:
-        return round(clamp(raw_rate), 4), 1.0, "high_mid_confidence_use_raw"
+    if confidence in {"high", "medium"}:
+        confidence_weight = CONFIDENCE_FACTOR.get(confidence, 0.92) * evidence_factor
+        adjusted = raw_rate * confidence_weight + category_rate * (1 - confidence_weight)
+        return round(clamp(adjusted), 4), round(confidence_weight, 4), "confidence_blend_raw_category"
+
+    if job_count <= 0:
+        adjusted = max(raw_rate, baseline_rate)
+        return round(clamp(adjusted), 4), 0.0, "no_job_use_raw_or_baseline"
+
+    sample_weight = job_count / (job_count + K_LOW)
+    confidence_weight = clamp(sample_weight * CONFIDENCE_FACTOR["low"] * evidence_factor)
+    floor_rate = max(baseline_rate, raw_rate)
+    blended = raw_rate * confidence_weight + category_rate * (1 - confidence_weight)
+    adjusted = max(floor_rate, blended)
+    return round(clamp(adjusted), 4), round(confidence_weight, 4), "low_confidence_weighted_blend"
 
 
 def main():
@@ -166,6 +184,7 @@ def main():
 
     for row in rows:
         row["raw_replace_rate"] = round(get_raw_rate(row), 4)
+        row["raw_impact_rate"] = row["raw_replace_rate"]
 
     global_mean = mean(row["raw_replace_rate"] for row in rows)
     category_stats = build_category_stats(rows)
@@ -181,15 +200,21 @@ def main():
         category_rate = float(cat_info["category_replace_rate"])
         baseline_rate = get_baseline_rate(row, baseline_rules)
 
-        adjusted_rate, confidence_weight, adjust_mode = compute_adjusted_rate(
-            raw_rate=row["raw_replace_rate"],
-            job_count=get_job_count(row),
-            confidence=get_confidence(row),
-            category_rate=category_rate,
-            baseline_rate=baseline_rate
-        )
+        if is_explicit_keep_zero(row):
+            adjusted_rate, confidence_weight, adjust_mode = 0.0, 0.0, "explicit_keep_zero"
+        else:
+            adjusted_rate, confidence_weight, adjust_mode = compute_adjusted_rate(
+                raw_rate=row["raw_replace_rate"],
+                job_count=get_job_count(row),
+                confidence=get_confidence(row),
+                category_rate=category_rate,
+                baseline_rate=baseline_rate,
+                evidence_level=get_evidence_level(row)
+            )
 
         row["adjusted_replace_rate"] = adjusted_rate
+        row["adjusted_impact_rate"] = adjusted_rate
+        row["impact_rate"] = adjusted_rate
         row["confidence_weight"] = confidence_weight
         row["global_mean_replace_rate"] = round(global_mean, 4)
         row["category_replace_rate"] = round(category_rate, 4)

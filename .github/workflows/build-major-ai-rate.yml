@@ -25,6 +25,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ github.event_name != 'schedule' || steps.sync_upstream.outputs.upstream_changed == 'true' }}
 
     env:
       UPSTREAM_API_URL: "https://api.github.com/repos/liyizhouAI/AI-jobs-China/contents/data.json?ref=main"
@@ -100,6 +102,7 @@ jobs:
           python scripts/apply_major_zero_override.py
           python scripts/recompute_adjusted_rate.py
           python scripts/find_zero_replace_rate.py
+          python scripts/validate_outputs.py
 
       - name: Prepare Pages site data
         if: github.event_name != 'schedule' || steps.sync_upstream.outputs.upstream_changed == 'true'
@@ -144,6 +147,7 @@ jobs:
             config/major_zero_override.json \
             scripts/apply_major_zero_override.py \
             scripts/recompute_adjusted_rate.py \
+            scripts/validate_outputs.py \
             .github/workflows/build-major-ai-rate.yml
 
           if git diff --cached --quiet; then
@@ -161,7 +165,7 @@ jobs:
 
   deploy:
     needs: build
-    if: github.event_name != 'schedule' || needs.build.result == 'success'
+    if: needs.build.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

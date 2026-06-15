@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>中国专业 AI 替代率</title>
+  <title>中国专业 AI 影响度</title>
   <link rel="stylesheet" href="./style.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
@@ -11,17 +11,17 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand-block">
-        <div class="brand-title">中国专业 AI 替代率</div>
-        <div class="brand-sub">默认展示调整后替代率，原始替代率和收缩权重放在悬停说明里。</div>
+        <div class="brand-title">中国专业 AI 影响度</div>
+        <div class="brand-sub">默认展示调整后 AI 影响度，原始影响度、证据等级和主要职业贡献放在说明里。</div>
       </div>
 
       <section class="stats-block">
         <div class="stat-label">专业总数</div>
         <div class="stat-value" id="totalMajors">—</div>
 
-        <div class="stat-label">平均替代率</div>
+        <div class="stat-label">平均AI影响度</div>
         <div class="stat-value" id="avgRate">—</div>
-        <div class="stat-note">默认显示 adjusted_replace_rate。</div>
+        <div class="stat-note">默认显示 adjusted_impact_rate。</div>
 
         <div class="stat-label">零值专业</div>
         <div class="stat-value" id="zeroCount">—</div>
@@ -39,7 +39,7 @@
         <div class="panel-title">说明</div>
         <div class="hint-text">
           顶部保留学科门类、专业类两个筛选框。<br />
-          页面按 adjusted_replace_rate 着色和排序，悬停树图可查看调整后替代率、原始替代率、岗位数、置信度和收缩权重。
+          页面按 adjusted_impact_rate 着色和排序，悬停树图可查看调整后影响度、原始影响度、岗位数、证据等级和调整模式。
         </div>
       </section>
 
@@ -71,8 +71,8 @@
       <section class="treemap-card">
         <div class="card-head">
           <div>
-            <div class="card-title">专业AI替代率列表</div>
-            <div class="card-sub">按调整后替代率排序显示。</div>
+            <div class="card-title">专业AI影响度列表</div>
+            <div class="card-sub">按调整后AI影响度排序显示，高影响度代表职业路径更可能被 AI 重塑。</div>
           </div>
         </div>
 
@@ -84,7 +84,9 @@
               <tr>
                 <th>专业名称</th>
                 <th>专业类</th>
-                <th>替代率</th>
+                <th>AI影响度</th>
+                <th>证据</th>
+                <th>主要职业贡献</th>
                 <th>岗位数/专业数</th>
               </tr>
             </thead>
@@ -96,11 +98,11 @@
       <section class="link-grid">
         <a class="link-card" href="./top20.html" target="_blank" rel="noopener noreferrer">
           <div class="link-title">Top 20 专业</div>
-          <div class="link-sub">按调整后替代率排序，并展示原始值、岗位数与置信度。</div>
+          <div class="link-sub">按调整后AI影响度排序，并展示原始值、岗位数与证据等级。</div>
         </a>
         <a class="link-card" href="./discipline.html" target="_blank" rel="noopener noreferrer">
-          <div class="link-title">学科平均替代率</div>
-          <div class="link-sub">按 adjusted_replace_rate 聚合学科平均值，同时保留原始平均值。</div>
+          <div class="link-title">学科平均AI影响度</div>
+          <div class="link-sub">按 adjusted_impact_rate 聚合学科平均值，同时保留原始平均值。</div>
         </a>
       </section>
     </main>
@@ -128,14 +130,43 @@
       return (v ?? '').toString().trim() || fallback;
     }
 
+    function escapeHtml(v) {
+      return safeText(v, '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[ch]));
+    }
+
     function metricOf(row) {
+      if (row && row.adjusted_impact_rate != null) return Number(row.adjusted_impact_rate || 0);
       if (row && row.adjusted_replace_rate != null) return Number(row.adjusted_replace_rate || 0);
+      if (row && row.impact_rate != null) return Number(row.impact_rate || 0);
       return Number(row?.replace_rate || 0);
     }
 
     function rawMetricOf(row) {
+      if (row && row.raw_impact_rate != null) return Number(row.raw_impact_rate || 0);
       if (row && row.raw_replace_rate != null) return Number(row.raw_replace_rate || 0);
       return Number(row?.replace_rate || 0);
+    }
+
+    function evidenceLabel(level) {
+      const labels = {
+        direct: '就业方向',
+        inferred: '专业名称推断',
+        fallback: '专业类兜底',
+        unknown: '未知'
+      };
+      return labels[level] || labels.unknown;
+    }
+
+    function topContribution(row) {
+      const items = Array.isArray(row.matched_job_contributions) ? row.matched_job_contributions : [];
+      if (!items.length) return '-';
+      return items.slice(0, 3).map(x => `${safeText(x.job_title, '-')}:${pct(x.ai_impact_score)}`).join(' / ');
     }
 
     let RAW_ROWS = [];
@@ -241,6 +272,8 @@
         raw_rate: '-',
         count: rows.length,
         confidence: '-',
+        evidence: '-',
+        contribution: '-',
         weight: '-'
       });
 
@@ -277,6 +310,9 @@
           raw_rate: pct(rawMetricOf(row)),
           count: row.job_count ?? 0,
           confidence: safeText(row.confidence, 'low'),
+          evidence: evidenceLabel(row.evidence_level || 'unknown'),
+          source: safeText(row.rule_source, '-'),
+          contribution: topContribution(row),
           weight: row.confidence_weight != null ? row.confidence_weight : '-',
           adjust_mode: safeText(row.adjust_mode, '-')
         });
@@ -291,6 +327,8 @@
           raw_rate: pct(avgRaw),
           count: item.count,
           confidence: '-',
+          evidence: '-',
+          contribution: '-',
           weight: '-',
           adjust_mode: '-'
         });
@@ -305,6 +343,8 @@
           raw_rate: pct(avgRaw),
           count: item.count,
           confidence: '-',
+          evidence: '-',
+          contribution: '-',
           weight: '-',
           adjust_mode: '-'
         });
@@ -335,9 +375,11 @@
         hovertemplate:
           '<b>%{label}</b><br>' +
           '类型：%{customdata.type}<br>' +
-          '调整后替代率：%{customdata.adjusted_rate}<br>' +
-          '原始替代率：%{customdata.raw_rate}<br>' +
+          '调整后AI影响度：%{customdata.adjusted_rate}<br>' +
+          '原始AI影响度：%{customdata.raw_rate}<br>' +
           '岗位数/专业数：%{customdata.count}<br>' +
+          '证据等级：%{customdata.evidence}<br>' +
+          '主要职业：%{customdata.contribution}<br>' +
           '置信度：%{customdata.confidence}<br>' +
           '收缩权重：%{customdata.weight}<br>' +
           '调整模式：%{customdata.adjust_mode}<extra></extra>',
@@ -366,9 +408,11 @@
 
       tbody.innerHTML = sorted.map(row => `
         <tr>
-          <td>${safeText(row.major_name, '')}</td>
-          <td>${safeText(row.major_category, '')}</td>
+          <td>${escapeHtml(row.major_name)}</td>
+          <td>${escapeHtml(row.major_category)}</td>
           <td>${pct(metricOf(row))}</td>
+          <td>${escapeHtml(evidenceLabel(row.evidence_level || 'unknown'))}</td>
+          <td>${escapeHtml(topContribution(row))}</td>
           <td>${row.job_count ?? 0} / ${row.category_major_count ?? 0}</td>
         </tr>
       `).join('');

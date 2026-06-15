@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Top 20 专业</title><link rel="stylesheet" href="./style.css" /></head><body>
-<div class="app-shell"><aside class="sidebar"><div class="brand-block"><div class="brand-title">中国专业 AI 替代率</div><div class="brand-sub">独立结果页，默认展示 adjusted_replace_rate。</div></div>
-<section class="detail-block"><div class="panel-title">页面导航</div><div class="hint-text"><a href="./index.html" target="_blank" rel="noopener noreferrer">返回风险树图</a><br /><a href="./top20.html" target="_blank" rel="noopener noreferrer">Top 20 专业</a><br /><a href="./discipline.html" target="_blank" rel="noopener noreferrer">学科平均替代率</a></div></section>
+<div class="app-shell"><aside class="sidebar"><div class="brand-block"><div class="brand-title">中国专业 AI 影响度</div><div class="brand-sub">独立结果页，默认展示 adjusted_impact_rate。</div></div>
+<section class="detail-block"><div class="panel-title">页面导航</div><div class="hint-text"><a href="./index.html" target="_blank" rel="noopener noreferrer">返回风险树图</a><br /><a href="./top20.html" target="_blank" rel="noopener noreferrer">Top 20 专业</a><br /><a href="./discipline.html" target="_blank" rel="noopener noreferrer">学科平均AI影响度</a></div></section>
 <section class="legend-block"><span class="legend-chip"><i class="legend-dot" style="background:#1e7a40"></i>极安全</span><span class="legend-chip"><i class="legend-dot" style="background:#5aad3e"></i>低风险</span><span class="legend-chip"><i class="legend-dot" style="background:#a8c020"></i>中低</span><span class="legend-chip"><i class="legend-dot" style="background:#f0b323"></i>中高</span><span class="legend-chip"><i class="legend-dot" style="background:#f97316"></i>高风险</span><span class="legend-chip"><i class="legend-dot" style="background:#d7263d"></i>极高</span></section></aside>
-<main class="main-area"><section class="toolbar-card" style="grid-template-columns:1fr auto;"><div><div class="card-title">Top 20 专业</div><div class="card-sub">按调整后替代率排序，并保留原始值供对照。</div></div><div class="toolbar-meta" id="metaInfo">加载中…</div></section><section class="treemap-card" style="min-height:auto;"><div class="table-wrap" style="padding-top:8px;"><table><thead><tr><th>#</th><th>专业</th><th>学科门类</th><th>专业类</th><th>调整后替代率</th><th>原始替代率</th><th>岗位数</th><th>置信度</th></tr></thead><tbody id="top20Body"></tbody></table></div></section></main></div>
+<main class="main-area"><section class="toolbar-card" style="grid-template-columns:1fr auto;"><div><div class="card-title">Top 20 专业</div><div class="card-sub">按调整后AI影响度排序，并保留原始值和证据等级供对照。</div></div><div class="toolbar-meta" id="metaInfo">加载中…</div></section><section class="treemap-card" style="min-height:auto;"><div class="table-wrap" style="padding-top:8px;"><table><thead><tr><th>#</th><th>专业</th><th>学科门类</th><th>专业类</th><th>调整后影响度</th><th>原始影响度</th><th>岗位数</th><th>证据</th><th>主要职业贡献</th></tr></thead><tbody id="top20Body"></tbody></table></div></section></main></div>
 <script>
 const RISK_COLORS = ['#1e7a40', '#5aad3e', '#a8c020', '#f0b323', '#f97316', '#d7263d'];
 const RISK_LABELS = ['极安全', '低风险', '中低', '中高', '高风险', '极高'];
 function pct(v){ return `${Math.round(Number(v || 0) * 100)}%`; }
 function levelIndex(rate){ const v = Number(rate || 0); if (v < 0.20) return 0; if (v < 0.35) return 1; if (v < 0.50) return 2; if (v < 0.65) return 3; if (v < 0.80) return 4; return 5; }
 function safeText(v, fallback='未分类'){ return (v ?? '').toString().trim() || fallback; }
-function metricOf(row){ if (row && row.adjusted_replace_rate != null) return Number(row.adjusted_replace_rate || 0); return Number(row?.replace_rate || 0); }
-function rawMetricOf(row){ if (row && row.raw_replace_rate != null) return Number(row.raw_replace_rate || 0); return Number(row?.replace_rate || 0); }
+function escapeHtml(v){ return safeText(v, '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function metricOf(row){ if (row && row.adjusted_impact_rate != null) return Number(row.adjusted_impact_rate || 0); if (row && row.adjusted_replace_rate != null) return Number(row.adjusted_replace_rate || 0); return Number(row?.replace_rate || 0); }
+function rawMetricOf(row){ if (row && row.raw_impact_rate != null) return Number(row.raw_impact_rate || 0); if (row && row.raw_replace_rate != null) return Number(row.raw_replace_rate || 0); return Number(row?.replace_rate || 0); }
+function evidenceLabel(level){ return ({direct:'就业方向', inferred:'专业名称推断', fallback:'专业类兜底', unknown:'未知'}[level] || '未知'); }
+function topContribution(row){ const items = Array.isArray(row.matched_job_contributions) ? row.matched_job_contributions : []; if (!items.length) return '-'; return items.slice(0,2).map(x => `${safeText(x.job_title, '-')}:${pct(x.ai_impact_score)}`).join(' / '); }
 
 async function init(){
   const res = await fetch('./data/major_ai_rate.json');
@@ -26,13 +29,14 @@ async function init(){
   document.getElementById('top20Body').innerHTML = top20.map((row,i)=>`
     <tr>
       <td>${i + 1}</td>
-      <td>${safeText(row.major_name)}</td>
-      <td>${safeText(row.discipline, '其他')}</td>
-      <td>${safeText(row.major_category, '未分类')}</td>
+      <td>${escapeHtml(row.major_name)}</td>
+      <td>${escapeHtml(safeText(row.discipline, '其他'))}</td>
+      <td>${escapeHtml(safeText(row.major_category, '未分类'))}</td>
       <td><span class="risk-badge level-${levelIndex(metricOf(row)) + 1}">${pct(metricOf(row))}</span></td>
       <td>${pct(rawMetricOf(row))}</td>
       <td>${row.job_count ?? 0}</td>
-      <td>${safeText(row.confidence, 'low')}</td>
+      <td>${escapeHtml(evidenceLabel(row.evidence_level || 'unknown'))}</td>
+      <td>${escapeHtml(topContribution(row))}</td>
     </tr>`).join('');
 }
 init();</script></body></html>

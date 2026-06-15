@@ -360,7 +360,9 @@ def fill_unmapped_with_fallbacks(majors, major_code_rules, major_category_rules,
             major_code_rules[code] = {
                 "include_categories": fallback.get("include_categories", []),
                 "include_titles": fallback.get("include_titles", []),
-                "exclude_titles": []
+                "exclude_titles": [],
+                "rule_source": source,
+                "evidence_level": "fallback"
             }
             report.append({
                 "major_code": row["major_code"],
@@ -369,6 +371,30 @@ def fill_unmapped_with_fallbacks(majors, major_code_rules, major_category_rules,
                 "include_categories": fallback.get("include_categories", []),
                 "include_titles": fallback.get("include_titles", [])
             })
+
+    return major_code_rules, report
+
+
+def enrich_rule_metadata(major_code_rules, report):
+    report_source = {
+        item.get("major_code"): item.get("rule_source", "unmapped")
+        for item in report
+    }
+    source_to_evidence = {
+        "employment_direction": "direct",
+        "major_name_inference": "inferred",
+        "major_category_fallback": "fallback",
+        "discipline_fallback": "fallback"
+    }
+
+    for code, rule in major_code_rules.items():
+        source = rule.get("rule_source") or report_source.get(code, "unmapped")
+        rule["rule_source"] = source
+        rule["evidence_level"] = source_to_evidence.get(source, "unknown")
+
+    for item in report:
+        source = item.get("rule_source", "unmapped")
+        item["evidence_level"] = source_to_evidence.get(source, "unknown")
 
     return major_code_rules, report
 
@@ -390,6 +416,8 @@ def main() -> None:
     major_code_rules, report = fill_unmapped_with_fallbacks(
         majors, major_code_rules, major_category_rules, discipline_rules, report
     )
+
+    major_code_rules, report = enrich_rule_metadata(major_code_rules, report)
 
     source_counter = Counter([x["rule_source"] for x in report])
 

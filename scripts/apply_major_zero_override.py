@@ -68,8 +68,12 @@ def main():
                 reasons.append(f"kw:{rule.get('name', '')}")
 
         if new_rate > 0:
-            row["raw_replace_rate"] = old_rate
+            row["pre_override_replace_rate"] = old_rate
+            row["pre_override_impact_rate"] = old_rate
+            row["raw_replace_rate"] = round(new_rate, 4)
+            row["raw_impact_rate"] = round(new_rate, 4)
             row["replace_rate"] = round(new_rate, 4)
+            row["impact_rate"] = round(new_rate, 4)
             row["zero_override_rate"] = round(new_rate, 4)
             row["zero_override_reason"] = "|".join(dict.fromkeys(reasons))
             changed += 1
