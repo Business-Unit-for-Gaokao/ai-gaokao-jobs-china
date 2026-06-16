@@ -12,7 +12,7 @@
     <aside class="sidebar">
       <div class="brand-block">
         <div class="brand-title">中国专业 AI 影响度</div>
-        <div class="brand-sub">默认展示调整后 AI 影响度，原始影响度、证据等级和主要职业贡献放在说明里。</div>
+        <div class="brand-sub">默认展示调整后 AI 影响度，原始影响度和有效职业贡献放在说明里。</div>
       </div>
 
       <section class="stats-block">
@@ -39,14 +39,14 @@
         <div class="panel-title">说明</div>
         <div class="hint-text">
           顶部保留学科门类、专业类两个筛选框。<br />
-          页面按 adjusted_impact_rate 着色和排序，悬停树图可查看调整后影响度、原始影响度、岗位数、证据等级和调整模式。
+          页面按 adjusted_impact_rate 着色和排序，悬停树图可查看调整后影响度、原始影响度、岗位数和有效说明。
         </div>
       </section>
 
       <section class="legend-block">
         <span class="legend-chip"><i class="legend-dot" style="background:#1e7a40"></i>极低</span>
         <span class="legend-chip"><i class="legend-dot" style="background:#78ad3f"></i>低</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#f0b323"></i>中</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:#42b8a8"></i>中</span>
         <span class="legend-chip"><i class="legend-dot" style="background:#f97316"></i>高</span>
         <span class="legend-chip"><i class="legend-dot" style="background:#d7263d"></i>极高</span>
       </section>
@@ -84,8 +84,8 @@
                 <th>专业名称</th>
                 <th>专业类</th>
                 <th>AI影响度</th>
-                <th>证据</th>
-                <th>主要职业贡献</th>
+                <th id="evidenceHead">证据</th>
+                <th id="contributionHead">主要职业贡献</th>
                 <th>岗位数/专业数</th>
               </tr>
             </thead>
@@ -97,7 +97,7 @@
       <section class="link-grid">
         <a class="link-card" href="./top20.html" target="_blank" rel="noopener noreferrer">
           <div class="link-title">Top 20 专业</div>
-          <div class="link-sub">按调整后AI影响度排序，并展示原始值、岗位数与证据等级。</div>
+          <div class="link-sub">按调整后AI影响度排序，并展示原始值、岗位数与有效说明。</div>
         </a>
         <a class="link-card" href="./discipline.html" target="_blank" rel="noopener noreferrer">
           <div class="link-title">学科平均AI影响度</div>
@@ -108,7 +108,7 @@
   </div>
 
   <script>
-    const RISK_COLORS = ['#1e7a40', '#78ad3f', '#f0b323', '#f97316', '#d7263d'];
+    const RISK_COLORS = ['#1e7a40', '#78ad3f', '#42b8a8', '#f97316', '#d7263d'];
     const RISK_LABELS = ['极低', '低', '中', '高', '极高'];
 
     function pct(v) {
@@ -161,10 +161,33 @@
       return labels[level] || labels.unknown;
     }
 
+    function hasMeaningfulValue(v) {
+      const text = safeText(v, '');
+      return Boolean(text && text !== '-' && text !== '未知');
+    }
+
     function topContribution(row) {
       const items = Array.isArray(row.matched_job_contributions) ? row.matched_job_contributions : [];
-      if (!items.length) return '-';
+      if (!items.length) return '';
       return items.slice(0, 3).map(x => `${safeText(x.job_title, '-')}:${pct(x.ai_impact_score)}`).join(' / ');
+    }
+
+    function buildHoverTemplate(row) {
+      const lines = [
+        '<b>%{label}</b>',
+        '类型：%{customdata.type}',
+        '调整后AI影响度：%{customdata.adjusted_rate}',
+        '原始AI影响度：%{customdata.raw_rate}',
+        '岗位数/专业数：%{customdata.count}'
+      ];
+
+      if (hasMeaningfulValue(row.evidence)) lines.push('证据等级：%{customdata.evidence}');
+      if (hasMeaningfulValue(row.contribution)) lines.push('主要职业：%{customdata.contribution}');
+      if (hasMeaningfulValue(row.confidence)) lines.push('置信度：%{customdata.confidence}');
+      if (hasMeaningfulValue(row.weight)) lines.push('收缩权重：%{customdata.weight}');
+      if (hasMeaningfulValue(row.adjust_mode)) lines.push('调整模式：%{customdata.adjust_mode}');
+
+      return `${lines.join('<br>')}<extra></extra>`;
     }
 
     let RAW_ROWS = [];
@@ -270,9 +293,9 @@
         raw_rate: '-',
         count: rows.length,
         confidence: '-',
-        evidence: '-',
-        contribution: '-',
-        weight: '-'
+        evidence: '',
+        contribution: '',
+        weight: ''
       });
 
       const disciplineMap = new Map();
@@ -325,10 +348,10 @@
           raw_rate: pct(avgRaw),
           count: item.count,
           confidence: '-',
-          evidence: '-',
-          contribution: '-',
-          weight: '-',
-          adjust_mode: '-'
+          evidence: '',
+          contribution: '',
+          weight: '',
+          adjust_mode: ''
         });
       }
 
@@ -341,10 +364,10 @@
           raw_rate: pct(avgRaw),
           count: item.count,
           confidence: '-',
-          evidence: '-',
-          contribution: '-',
-          weight: '-',
-          adjust_mode: '-'
+          evidence: '',
+          contribution: '',
+          weight: '',
+          adjust_mode: ''
         });
       }
 
@@ -370,17 +393,7 @@
           bordercolor: 'rgba(255,255,255,0.13)',
           font: { color: '#e6eaf0' }
         },
-        hovertemplate:
-          '<b>%{label}</b><br>' +
-          '类型：%{customdata.type}<br>' +
-          '调整后AI影响度：%{customdata.adjusted_rate}<br>' +
-          '原始AI影响度：%{customdata.raw_rate}<br>' +
-          '岗位数/专业数：%{customdata.count}<br>' +
-          '证据等级：%{customdata.evidence}<br>' +
-          '主要职业：%{customdata.contribution}<br>' +
-          '置信度：%{customdata.confidence}<br>' +
-          '收缩权重：%{customdata.weight}<br>' +
-          '调整模式：%{customdata.adjust_mode}<extra></extra>',
+        hovertemplate: custom.map(buildHoverTemplate),
         pathbar: { visible: false },
         showscale: false
       }], {
@@ -403,14 +416,18 @@
       if (!tbody) return;
 
       const sorted = [...rows].sort((a, b) => metricOf(b) - metricOf(a));
+      const showEvidence = sorted.some(row => hasMeaningfulValue(evidenceLabel(row.evidence_level || 'unknown')));
+      const showContribution = sorted.some(row => hasMeaningfulValue(topContribution(row)));
+      document.getElementById('evidenceHead').hidden = !showEvidence;
+      document.getElementById('contributionHead').hidden = !showContribution;
 
       tbody.innerHTML = sorted.map(row => `
         <tr>
           <td>${escapeHtml(row.major_name)}</td>
           <td>${escapeHtml(row.major_category)}</td>
           <td>${pct(metricOf(row))}</td>
-          <td>${escapeHtml(evidenceLabel(row.evidence_level || 'unknown'))}</td>
-          <td>${escapeHtml(topContribution(row))}</td>
+          ${showEvidence ? `<td>${escapeHtml(evidenceLabel(row.evidence_level || 'unknown'))}</td>` : ''}
+          ${showContribution ? `<td>${escapeHtml(topContribution(row))}</td>` : ''}
           <td>${row.job_count ?? 0} / ${row.category_major_count ?? 0}</td>
         </tr>
       `).join('');
