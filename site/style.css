@@ -13,11 +13,11 @@
   --accent-blue-bg:#1e3558;
   --accent-blue-border:#3b82f6;
   --accent-blue-text:#93c5fd;
-  --risk-1: #1f7a3f;   /* 深绿，低风险 */
-  --risk-2: #6a9b2d;   /* 黄绿 */
-  --risk-3: #d49b1f;   /* 琥珀黄，中风险过渡 */
-  --risk-4: #f97316;   /* 橙色，中高风险 */
-  --risk-5: #d7263d;   /* 红色，高风险 */
+  --risk-1: #0077b6;   /* 深蓝 · 信息/零风险 */
+  --risk-2: #00b4d8;   /* 湖蓝 · 低风险 */
+  --risk-3: #ffb703;   /* 琥珀黄 · 中风险 */
+  --risk-4: #fb8500;   /* 橙 · 高风险 */
+  --risk-5: #d00000;   /* 红 · 严重风险 */
   --shadow-lg:0 8px 36px rgba(0,0,0,.55);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
