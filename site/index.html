@@ -44,11 +44,10 @@
       </section>
 
       <section class="legend-block">
-        <span class="legend-chip"><i class="legend-dot" style="background:#1e7a40"></i>极安全</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#5aad3e"></i>低风险</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#a8c020"></i>中低</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#f0b323"></i>中高</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#f97316"></i>高风险</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:#1e7a40"></i>极低</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:#78ad3f"></i>低</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:#f0b323"></i>中</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:#f97316"></i>高</span>
         <span class="legend-chip"><i class="legend-dot" style="background:#d7263d"></i>极高</span>
       </section>
     </aside>
@@ -109,8 +108,8 @@
   </div>
 
   <script>
-    const RISK_COLORS = ['#1e7a40', '#5aad3e', '#a8c020', '#f0b323', '#f97316', '#d7263d'];
-    const RISK_LABELS = ['极安全', '低风险', '中低', '中高', '高风险', '极高'];
+    const RISK_COLORS = ['#1e7a40', '#78ad3f', '#f0b323', '#f97316', '#d7263d'];
+    const RISK_LABELS = ['极低', '低', '中', '高', '极高'];
 
     function pct(v) {
       return `${Math.round(Number(v || 0) * 100)}%`;
@@ -119,11 +118,10 @@
     function levelIndex(rate) {
       const v = Number(rate || 0);
       if (v < 0.20) return 0;
-      if (v < 0.35) return 1;
-      if (v < 0.50) return 2;
-      if (v < 0.65) return 3;
-      if (v < 0.80) return 4;
-      return 5;
+      if (v < 0.40) return 1;
+      if (v < 0.60) return 2;
+      if (v < 0.80) return 3;
+      return 4;
     }
 
     function safeText(v, fallback = '未分类') {
@@ -216,7 +214,7 @@
     function renderHistogram(rows) {
       const histogram = document.getElementById('histogram');
       const tierList = document.getElementById('tierList');
-      const counts = [0, 0, 0, 0, 0, 0];
+      const counts = [0, 0, 0, 0, 0];
 
       rows.forEach(row => counts[levelIndex(metricOf(row))] += 1);
 
