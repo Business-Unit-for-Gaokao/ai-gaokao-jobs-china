@@ -44,11 +44,11 @@
       </section>
 
       <section class="legend-block">
-        <span class="legend-chip"><i class="legend-dot" style="background:#0077b6"></i>极低</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#00b4d8"></i>低</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#ffb703"></i>中</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#fb8500"></i>高</span>
-        <span class="legend-chip"><i class="legend-dot" style="background:#d00000"></i>极高</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:var(--risk-1)"></i>极低</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:var(--risk-2)"></i>低</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:var(--risk-3)"></i>中</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:var(--risk-4)"></i>高</span>
+        <span class="legend-chip"><i class="legend-dot" style="background:var(--risk-5)"></i>极高</span>
       </section>
     </aside>
 
@@ -108,7 +108,9 @@
   </div>
 
   <script>
-    const RISK_COLORS = ['#0077b6', '#00b4d8', '#ffb703', '#fb8500', '#d00000'];
+    const RISK_COLORS = Array.from({ length: 5 }, (_, i) =>
+      getComputedStyle(document.documentElement).getPropertyValue(`--risk-${i + 1}`).trim()
+    );
     const RISK_LABELS = ['极低', '低', '中', '高', '极高'];
 
     function pct(v) {
